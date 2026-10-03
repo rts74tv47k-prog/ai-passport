@@ -137,8 +137,8 @@ git switch -c feature/my-passport-app
 
 **ESP32-C3 · 8 MB Flash · 无 PSRAM · 240 × 320 屏幕 · 三个实体按键**
 
-默认分区仅包含 **NVS、PHY data 和占用剩余 Flash 的单个 factory 应用**。
-用户固件可按需调整为其他合法的 8 MB 布局，详见[固件布局](development/engineering/firmware-layout.zh_CN.md)。
+当前分区包含 **NVS、PHY data、4 MB factory 应用，以及一块 FAT 存储分区**，供伴侣知识库使用。其它合法的 8 MB 布局仍然允许。
+详见[固件布局](development/engineering/firmware-layout.zh_CN.md)。
 
 <details>
 <summary><strong>展开完整能力表</strong> — 接口、限制与实现细节</summary>

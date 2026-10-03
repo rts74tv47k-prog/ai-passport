@@ -141,8 +141,7 @@ Example branches may change the same menu, configuration, or driver in incompati
 
 **ESP32-C3 · 8 MB Flash · no PSRAM · 240 × 320 display · three physical buttons**
 
-The default layout contains only **NVS, PHY data, and one factory application**
-spanning the remaining Flash. User firmware may use another valid 8 MB layout.
+The checked-in layout contains **NVS, PHY data, a 4 MB factory application, and a FAT storage partition** for the companion knowledge base. Another valid 8 MB layout is still allowed.
 See [firmware layout](development/engineering/firmware-layout.md).
 
 <details>

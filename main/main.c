@@ -10,6 +10,7 @@
 #include "bsp_audio.h"
 #include "bsp_battery.h"
 #include "bsp_pins.h"      // 错误日志里要打印 BSP_LCD_* 引脚号
+#include "companion_store.h"
 #include "demo.h"
 #include "demo_navigation.h"
 #include "ui_pixel.h"
@@ -192,6 +193,10 @@ static void on_key(bsp_btn_t btn, bsp_btn_ev_t ev, void *user) {
 
 void app_main(void) {
     ESP_LOGI(TAG, "FoloToy AI Passport BSP demo 启动");
+    companion_err_t store_err = companion_store_mount();
+    if (store_err != COMPANION_OK) {
+        ESP_LOGE(TAG, "storage mount failed: %d", (int)store_err);
+    }
     esp_sleep_wakeup_cause_t wakeup = esp_sleep_get_wakeup_cause();
     if (wakeup != ESP_SLEEP_WAKEUP_UNDEFINED) {
         ESP_LOGI(TAG, "休眠唤醒原因: %d", wakeup);

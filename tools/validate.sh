@@ -29,6 +29,10 @@ run_static_checks() {
         -o "${test_dir}/test_ui_pixel_math"
     "${test_dir}/test_ui_pixel_math"
     "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Imain \
+        tests/test_companion_store.c main/companion_store_format.c main/companion_store_files.c \
+        -o "${test_dir}/test_companion_store"
+    "${test_dir}/test_companion_store"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Imain \
         tests/test_demo_navigation.c main/demo_navigation.c \
         -o "${test_dir}/test_demo_navigation"
     "${test_dir}/test_demo_navigation"

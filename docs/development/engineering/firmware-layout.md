@@ -5,21 +5,25 @@
 # Firmware Layout
 
 This repository is a minimal base for user-defined firmware targeting an
-ESP32-C3 with 8 MB Flash. Its default does not reserve product-specific
-identity, OTA, or unused data partitions.
+ESP32-C3 with 8 MB Flash. The checked-in table keeps a 4 MiB factory image and
+a FAT storage partition for the companion knowledge base. It does not reserve
+OTA slots.
 
 ## Default layout
 
-The default partition table contains exactly:
+The partition table contains exactly:
 
 | Partition | Type/subtype | Offset | Size | Purpose |
 | --- | --- | ---: | ---: | --- |
 | `nvs` | data/NVS | `0x9000` | `0x6000` | ESP-IDF and application key-value storage |
 | `phy_init` | data/PHY | `0xF000` | `0x1000` | PHY initialization data |
-| `factory` | app/factory | `0x10000` | `0x7F0000` | The single application image; all remaining Flash |
+| `factory` | app/factory | `0x10000` | `0x400000` | The single application image, 4 MiB |
+| `storage` | data/fat | `0x410000` | `0x3F0000` | Companion knowledge base, about 3.9 MiB |
 
-The default has no OTA slots. This is a starting point, not a restriction on
-user firmware.
+`storage` is mounted by the application as FAT on wear levelling. The on-disk
+record format and the flashing impact are in
+[companion storage](companion-storage.md). The table has no OTA slots. Another
+valid 8 MB layout is still allowed.
 
 ## Custom layouts
 
