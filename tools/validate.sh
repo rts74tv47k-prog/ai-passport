@@ -41,6 +41,10 @@ run_static_checks() {
         -o "${test_dir}/test_companion_text"
     "${test_dir}/test_companion_text"
     "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Imain \
+        tests/test_companion_ai.c main/companion_ai_parse.c main/companion_wav.c \
+        -o "${test_dir}/test_companion_ai"
+    "${test_dir}/test_companion_ai"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Imain \
         tests/test_demo_navigation.c main/demo_navigation.c \
         -o "${test_dir}/test_demo_navigation"
     "${test_dir}/test_demo_navigation"

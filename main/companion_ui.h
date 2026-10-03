@@ -23,3 +23,9 @@ uint32_t companion_ui_capture_generation(void);
 // that is still in the recognizing state. is_new puts that name first.
 bool companion_ui_post_draft(const char *text, size_t len, uint32_t category_id,
                              bool is_new, const char *new_name, uint32_t generation);
+
+// Show a chat reply on the home bubble when generation still matches.
+bool companion_ui_post_reply(const char *text, size_t len, uint32_t generation);
+
+// Recognition or chat failed. Ignored when generation no longer matches.
+bool companion_ui_post_fail(uint32_t generation);

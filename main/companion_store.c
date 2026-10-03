@@ -47,7 +47,7 @@ companion_err_t companion_store_mount(void) {
 
     const esp_vfs_fat_mount_config_t cfg = {
         .format_if_mount_failed = true,
-        .max_files = 4,
+        .max_files = 6,
         .allocation_unit_size = CONFIG_WL_SECTOR_SIZE,
         .disk_status_check_enable = false,
         .use_one_fat = false,

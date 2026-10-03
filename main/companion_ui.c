@@ -18,6 +18,7 @@
 #include "bsp_button.h"
 #include "bsp_display.h"
 #include "bsp_pins.h"
+#include "companion_ai.h"
 #include "companion_nav.h"
 #include "companion_net.h"
 #include "companion_store.h"
@@ -49,7 +50,7 @@ enum {
     COL_ON = 0x7DAB6A,
 };
 
-enum { MSG_KEY = 1, MSG_LINK = 2 };
+enum { MSG_KEY = 1, MSG_LINK = 2, MSG_REPLY = 3, MSG_FAIL = 4 };
 
 typedef struct {
     uint8_t type;
@@ -57,6 +58,7 @@ typedef struct {
     uint8_t ev;
     uint8_t online;
     char ip[16];
+    uint32_t gen;
 } ui_msg_t;
 
 static const char *const k_off_chat = "离线，无法聊天";
@@ -97,6 +99,11 @@ static size_t s_order_n;
 static const char *s_banner;
 static bool s_err_hint;
 static char s_link_ip[16];
+static char s_reply[400];
+static size_t s_reply_len;
+static bool s_reply_ready;
+static uint32_t s_reply_gen;
+static char s_shown[400];
 
 _Static_assert(sizeof(s_text) <= 8192, "draft buffer exceeds 8KB");
 _Static_assert(sizeof(s_record) <= 8192, "browse buffer exceeds 8KB");
@@ -704,6 +711,7 @@ static void note_action(companion_act_t act) {
     } else if (act == COMPANION_ACT_BUSY && s_nav.page == COMPANION_PAGE_HOME) {
         s_banner = k_busy;
     } else if (act == COMPANION_ACT_CHAT_START) {
+        bump_generation();
         s_banner = k_listen;
     } else if (act == COMPANION_ACT_CHAT_END) {
         s_banner = k_wait;
@@ -726,6 +734,11 @@ static void note_action(companion_act_t act) {
         s_err_hint = false;
     }
     ESP_LOGI(TAG, "page %d act %d", (int)s_nav.page, (int)act);
+    if (act == COMPANION_ACT_LISTEN_START || act == COMPANION_ACT_CHAT_START ||
+        act == COMPANION_ACT_PROCESS || act == COMPANION_ACT_TRUNCATED ||
+        act == COMPANION_ACT_CHAT_END) {
+        companion_ai_note(act, s_generation);
+    }
 }
 
 static void handle_msg(const ui_msg_t *msg) {
@@ -740,6 +753,31 @@ static void handle_msg(const ui_msg_t *msg) {
             s_link_ip[0] = '\0';
         }
         note_action(COMPANION_ACT_REFRESH);
+        return;
+    }
+    if (msg->type == MSG_FAIL) {
+        if (msg->gen != s_generation) return;
+        if (s_nav.page == COMPANION_PAGE_LISTEN &&
+            s_nav.listen_mode == COMPANION_LISTEN_PROCESS) {
+            note_action(companion_nav_process_done(&s_nav, false));
+        } else {
+            s_banner = k_fail;
+        }
+        return;
+    }
+    if (msg->type == MSG_REPLY) {
+        bool take = false;
+        lock_mu();
+        if (s_reply_ready && s_reply_gen == s_generation && msg->gen == s_generation) {
+            memcpy(s_shown, s_reply, s_reply_len);
+            s_shown[s_reply_len] = '\0';
+            s_reply_ready = false;
+            take = true;
+        }
+        unlock_mu();
+        if (!take) return;
+        s_banner = s_shown;
+        s_nod = 12;
         return;
     }
     companion_ev_t ev;
@@ -949,4 +987,34 @@ bool companion_ui_post_draft(const char *text, size_t len, uint32_t category_id,
     }
     unlock_mu();
     return ok;
+}
+
+bool companion_ui_post_reply(const char *text, size_t len, uint32_t generation) {
+    if (!s_mu || !s_q || !text || len == 0 || generation == 0) return false;
+    size_t show = companion_nav_utf8_prefix(text, len, sizeof(s_reply) - 1);
+    if (show == 0) return false;
+    if (xSemaphoreTake(s_mu, pdMS_TO_TICKS(50)) != pdTRUE) return false;
+    bool ok = false;
+    if (generation == s_generation) {
+        memcpy(s_reply, text, show);
+        s_reply[show] = '\0';
+        s_reply_len = show;
+        s_reply_gen = generation;
+        s_reply_ready = true;
+        ok = true;
+    }
+    unlock_mu();
+    if (!ok) return false;
+    ui_msg_t msg = {0};
+    msg.type = MSG_REPLY;
+    msg.gen = generation;
+    return xQueueSend(s_q, &msg, 0) == pdTRUE;
+}
+
+bool companion_ui_post_fail(uint32_t generation) {
+    if (!s_q || generation == 0) return false;
+    ui_msg_t msg = {0};
+    msg.type = MSG_FAIL;
+    msg.gen = generation;
+    return xQueueSend(s_q, &msg, 0) == pdTRUE;
 }
