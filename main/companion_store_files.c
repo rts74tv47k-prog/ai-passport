@@ -1172,3 +1172,11 @@ companion_err_t companion_files_export_txt(companion_files_t *store, companion_e
     if (err != COMPANION_OK) return err;
     return walk_records(store, false, export_visit, &export);
 }
+
+companion_err_t companion_files_usage(const companion_files_t *store, uint32_t *live_bytes,
+                                     uint32_t *limit_bytes) {
+    if (!store || !store->open) return COMPANION_ERR_STATE;
+    if (live_bytes) *live_bytes = store->records_live_bytes;
+    if (limit_bytes) *limit_bytes = store->records_limit;
+    return COMPANION_OK;
+}

@@ -3,6 +3,7 @@
 #include "bsp_battery.h"
 #include "bsp_display.h"
 #include "bsp_pins.h"
+#include "companion_net.h"
 #include "companion_store.h"
 #include "companion_ui.h"
 #include "esp_log.h"
@@ -26,4 +27,5 @@ void app_main(void) {
         ESP_LOGW(TAG, "battery init failed");
     }
     companion_ui_start();
+    companion_net_start();
 }

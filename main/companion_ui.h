@@ -12,7 +12,9 @@
 
 void companion_ui_start(void);
 
-bool companion_ui_set_link(bool online);
+// online with a dotted IP shows http://IP on the home bubble.
+// A null IP, or online == false, shows the BLUFI name instead.
+bool companion_ui_set_link(bool online, const char *ip);
 
 // Generation of the capture that is in progress. Zero means none.
 uint32_t companion_ui_capture_generation(void);

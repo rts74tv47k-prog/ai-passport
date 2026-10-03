@@ -19,6 +19,7 @@
 #include "bsp_display.h"
 #include "bsp_pins.h"
 #include "companion_nav.h"
+#include "companion_net.h"
 #include "companion_store.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -55,9 +56,9 @@ typedef struct {
     uint8_t btn;
     uint8_t ev;
     uint8_t online;
+    char ip[16];
 } ui_msg_t;
 
-static const char *const k_home = "短按说话，长按记录";
 static const char *const k_off_chat = "离线，无法聊天";
 static const char *const k_off_rec = "离线，无法记录";
 static const char *const k_busy = "请先说完";
@@ -95,6 +96,7 @@ static uint32_t s_order[32];
 static size_t s_order_n;
 static const char *s_banner;
 static bool s_err_hint;
+static char s_link_ip[16];
 
 _Static_assert(sizeof(s_text) <= 8192, "draft buffer exceeds 8KB");
 _Static_assert(sizeof(s_record) <= 8192, "browse buffer exceeds 8KB");
@@ -374,9 +376,8 @@ static bool save_draft(void) {
         return false;
     }
     uint32_t record_id = 0;
-    // Clock stays 0 until SNTP is wired. The store prints that as unknown.
     companion_err_t err = companion_store_record_append(
-        category, 0, s_text, s_text_len, &record_id);
+        category, companion_net_unix_time(), s_text, s_text_len, &record_id);
     if (err != COMPANION_OK) {
         ESP_LOGE(TAG, "record save failed: %d", (int)err);
         return false;
@@ -439,8 +440,13 @@ static void rebuild_text(void) {
     s_meta[0] = '\0';
     s_index[0] = '\0';
     if (s_nav.page == COMPANION_PAGE_HOME) {
-        const char *line = s_banner ? s_banner : k_home;
-        copy_show(s_view, sizeof(s_view), line, strlen(line), 120);
+        if (s_banner) {
+            copy_show(s_view, sizeof(s_view), s_banner, strlen(s_banner), 120);
+        } else if (s_nav.online && s_link_ip[0] != '\0') {
+            snprintf(s_view, sizeof(s_view), "http://%s", s_link_ip);
+        } else {
+            copy_show(s_view, sizeof(s_view), "BLUFI_FoloPassport", 18, 120);
+        }
         return;
     }
     if (s_nav.page == COMPANION_PAGE_LISTEN) {
@@ -725,7 +731,14 @@ static void note_action(companion_act_t act) {
 static void handle_msg(const ui_msg_t *msg) {
     s_active = xTaskGetTickCount();
     if (msg->type == MSG_LINK) {
+        bool was_online = s_nav.online;
         companion_nav_set_online(&s_nav, msg->online != 0);
+        if (msg->online) {
+            snprintf(s_link_ip, sizeof(s_link_ip), "%s", msg->ip);
+            if (!was_online) s_banner = NULL;
+        } else {
+            s_link_ip[0] = '\0';
+        }
         note_action(COMPANION_ACT_REFRESH);
         return;
     }
@@ -877,11 +890,16 @@ void companion_ui_start(void) {
     ESP_LOGI(TAG, "ui ready");
 }
 
-bool companion_ui_set_link(bool online) {
+bool companion_ui_set_link(bool online, const char *ip) {
     if (!s_q) {
         return false;
     }
-    ui_msg_t msg = {.type = MSG_LINK, .online = online ? 1 : 0};
+    ui_msg_t msg = {0};
+    msg.type = MSG_LINK;
+    msg.online = online ? 1 : 0;
+    if (online && ip) {
+        snprintf(msg.ip, sizeof(msg.ip), "%.15s", ip);
+    }
     return xQueueSend(s_q, &msg, 0) == pdTRUE;
 }
 

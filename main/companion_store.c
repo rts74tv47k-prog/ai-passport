@@ -240,3 +240,11 @@ companion_err_t companion_store_export_txt(companion_export_write_fn write, void
     if (err != COMPANION_OK) ESP_LOGW(TAG, "export failed: %d", (int)err);
     return err;
 }
+
+companion_err_t companion_store_usage(uint32_t *live_bytes, uint32_t *limit_bytes) {
+    companion_err_t err = begin();
+    if (err != COMPANION_OK) return err;
+    err = companion_files_usage(s_files, live_bytes, limit_bytes);
+    end();
+    return err;
+}

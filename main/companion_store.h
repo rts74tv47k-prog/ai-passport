@@ -146,6 +146,8 @@ companion_err_t companion_files_record_at(companion_files_t *store, uint32_t cat
 // UTF-8 with BOM, LF newlines, one pass. Suitable for Notepad and WeChat.
 companion_err_t companion_files_export_txt(companion_files_t *store, companion_export_write_fn write, void *ctx);
 companion_err_t companion_files_compact(companion_files_t *store);
+companion_err_t companion_files_usage(const companion_files_t *store, uint32_t *live_bytes,
+                                     uint32_t *limit_bytes);
 
 companion_err_t companion_store_mount(void);
 void companion_store_unmount(void);
@@ -167,3 +169,4 @@ companion_err_t companion_store_record_count(uint32_t category_id, size_t *out_c
 companion_err_t companion_store_record_at(uint32_t category_id, size_t index, companion_record_info_t *info,
                                          char *text, size_t text_cap, size_t *out_text_len);
 companion_err_t companion_store_export_txt(companion_export_write_fn write, void *ctx);
+companion_err_t companion_store_usage(uint32_t *live_bytes, uint32_t *limit_bytes);
